@@ -1,4 +1,5 @@
 #include <Arduino.h>
+#include <unity.h>
 
 #define POWER_BTN                48  // Pin for the power button
 #define BLE_BTN                  46  // Pin for the BLE button
@@ -42,23 +43,23 @@ void IRAM_ATTR timerButtonISR() {
   tmr_btn_flag = true;
 }
 
-void setup() {
-  Serial.begin(115200);
+// void setup() {
+//   Serial.begin(115200);
 
-  pinMode(POWER_BTN, INPUT_PULLUP);
-  pinMode(BLE_BTN, INPUT_PULLUP);
-  pinMode(TIMER_CONTROL_BTN, INPUT_PULLUP);
+//   pinMode(POWER_BTN, INPUT_PULLUP);
+//   pinMode(BLE_BTN, INPUT_PULLUP);
+//   pinMode(TIMER_CONTROL_BTN, INPUT_PULLUP);
 
-  // Initialize states
-  pwr_btn_last_state = digitalRead(POWER_BTN);
-  ble_btn_last_state = digitalRead(BLE_BTN);
-  tmr_btn_last_state = digitalRead(TIMER_CONTROL_BTN);
+//   // Initialize states
+//   pwr_btn_last_state = digitalRead(POWER_BTN);
+//   ble_btn_last_state = digitalRead(BLE_BTN);
+//   tmr_btn_last_state = digitalRead(TIMER_CONTROL_BTN);
 
-  // Attach interrupts
-  attachInterrupt(digitalPinToInterrupt(POWER_BTN), powerButtonISR, CHANGE);
-  attachInterrupt(digitalPinToInterrupt(BLE_BTN), bleButtonISR, CHANGE);
-  attachInterrupt(digitalPinToInterrupt(TIMER_CONTROL_BTN), timerButtonISR, CHANGE);
-}
+//   // Attach interrupts
+//   attachInterrupt(digitalPinToInterrupt(POWER_BTN), powerButtonISR, CHANGE);
+//   attachInterrupt(digitalPinToInterrupt(BLE_BTN), bleButtonISR, CHANGE);
+//   attachInterrupt(digitalPinToInterrupt(TIMER_CONTROL_BTN), timerButtonISR, CHANGE);
+// }
 
 void pwr_button_count() {
   if (pwr_btn_flag) {
@@ -72,12 +73,14 @@ void pwr_button_count() {
     if ((millis() - lastDebounceTime) > debounceDelay) {
       if (pwr_btn_state != pwr_btn_last_state) {
         if (pwr_btn_state == HIGH) {
+            TEST_ASSERT_BIT_HIGH(pwr_btn_state,HIGH);
           pwr_btn_press_time = millis();  // Record the time the button was pressed
         } else {
           if ((millis() - pwr_btn_press_time) >= 2000) {  // If held for 2 seconds or more
             // Turn off the device
             device_on = false;
             digitalWrite(TIMER_CONTROL_BTN, LOW);
+            TEST_ASSERT_BIT_LOW(device_on,false);
             pwr_btn_counter = 0;
             Serial.println("Device turned off");
           } else {
@@ -85,10 +88,12 @@ void pwr_button_count() {
               // Turn on the device
               device_on = true;
               digitalWrite(TIMER_CONTROL_BTN, HIGH);
+              TEST_ASSERT_BIT_HIGH(device_on, true);
               Serial.println("Device turned on");
             } else {
               pwr_btn_counter++;
               if (pwr_btn_counter == pwr_btn_cutoff) {
+                TEST_ASSERT_EQUAL(pwr_btn_counter, 4);
                 digitalWrite(TIMER_CONTROL_BTN, LOW);  // Motor stop
                 pwr_btn_counter = 0;
               }
@@ -120,10 +125,13 @@ void ble_button_on_off() {
             ble_on = !ble_on;
             if (ble_on) {
               // Turn on BLE and start advertising
+              TEST_ASSERT_BIT_HIGH(ble_on,true);
               Serial.println("BLE turned on");
             } else {
               // Turn off BLE
+              TEST_ASSERT_BIT_LOW(ble_on, false);
               Serial.println("BLE turned off");
+
             }
           }
         }
@@ -145,10 +153,12 @@ void timer_control() {
     if ((millis() - lastDebounceTime) > debounceDelay) {
       if (tmr_btn_state != tmr_btn_last_state) {
         if (tmr_btn_state == HIGH) {
+            TEST_ASSERT_BIT_HIGH(tmr_btn_state,HIGH);
           tmr_btn_counter++;
           // Timer function and turn off the motor when the timer is zero
           Serial.print("Timer set to ");
           Serial.print(tmr_btn_counter * 5);
+          TEST_ASSERT_EQUAL(tmr_btn_counter,1);
           Serial.println(" minutes");
         }
         tmr_btn_last_state = tmr_btn_state;
@@ -157,8 +167,8 @@ void timer_control() {
   }
 }
 
-void loop() {
-  pwr_button_count();
-  ble_button_on_off();
-  timer_control();
-}
+// void loop() {
+//   pwr_button_count();
+//   ble_button_on_off();
+//   timer_control();
+// }
